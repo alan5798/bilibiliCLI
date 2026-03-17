@@ -1,7 +1,17 @@
 #include <iostream>
-#include "video.h"
-void input_process(){
-   std::string input;
-   std::getline(std::cin ,input);
-   
+#include <sstream>
+#include "help.h"
+#include "input.h"
+int cmdconfirm(){
+    std::string cmd;
+    std::cin>>cmd;
+    std::string cmdlist[10]={"search","help","play","exit","speed","clarity","history","starfolder","star","clear"};
+    for(int i=0;i<9;++i){
+        if(cmd==cmdlist[i]){
+            return i;
+        }
+    }
+    std::cout<<"wrong input";
+    help();
 }
+
