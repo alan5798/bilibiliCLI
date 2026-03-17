@@ -7,129 +7,80 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-using json = nlohmann::json;
 
-struct VideoInfo {
-    std::string title;
-    std::string url;
-};
-
-// CURL回调
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
-    size_t newLength = size * nmemb;
-    s->append((char*)contents, newLength);
-    return newLength;
+void help(){
+    std::cout<<"帮助信息:"<<std::endl;
+    std::cout<<"1 搜索              search keyword"<<std::endl;
+    std::cout<<"2 帮助              help"<<std::endl;
+    std::cout<<"3 播放               play index"<<std::endl;
+    std::cout<<"4 退出               exit"<<std::endl;
+    std::cout<<"5 设置播放速度        speed times"<<std::endl;
+    std::cout<<"6 设置画面清晰度      clarity level "<<std::endl;
+    std::cout<<"7 浏览历史           history"<<std::endl;
+    std::cout<<"8 收藏夹             starfolder"<<std::endl;
+    std::cout<<"9 收藏               star index"<<std::endl;
 }
-
-// URL编码
-std::string urlEncode(CURL* curl, const std::string& str) {
-    char* encoded = curl_easy_escape(curl, str.c_str(), str.length());
-    std::string result(encoded);
-    curl_free(encoded);
-    return result;
-}
-
-// 请求API
-std::string fetchBiliAPI(const std::string& keyword) {
-    CURL* curl = curl_easy_init();
-    std::string response;
-
-    if (curl) {
-        std::string url = "https://api.bilibili.com/x/web-interface/search/all/v2?keyword=" + keyword;
-        
-        struct curl_slist* headers = NULL;
-        headers = curl_slist_append(headers, "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36");
-        headers = curl_slist_append(headers, "Referer: https://search.bilibili.com/");
-
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-
-        CURLcode res = curl_easy_perform(curl);
-        if(res != CURLE_OK) printf("CURL请求失败: %s\n", curl_easy_strerror(res));
-
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-    }
-    return response;
-}
-
-// 调试：打印字符串片段
-void debugPrint(const std::string& s, const char* name, int maxLen=1000){
-    printf("\n[调试] %s 长度：%zu\n", name, s.size());
-    printf("[调试] %s 前%d字符：\n", name, maxLen);
-    if(s.size() < maxLen) printf("%s\n", s.c_str());
-    else printf("%s...\n", s.substr(0, maxLen).c_str());
-}
-
-// 解析JSON（带调试+异常捕获）
-std::vector<VideoInfo> parseJson(const std::string& jsonStr) {
-    std::vector<VideoInfo> videos;
-    try {
-        debugPrint(jsonStr, "API返回JSON");
-        json data = json::parse(jsonStr);
-
-        // 调试：打印返回码
-        printf("[调试] B站API返回码 code: %d\n", data["code"].get<int>());
-        if(data["code"] != 0){
-            printf("[调试] API错误信息: %s\n", data["message"].get<std::string>().c_str());
-            return videos;
-        }
-
-        // 遍历所有结果，找视频
-        for(auto& result : data["data"]["result"]){
-            printf("[调试] 结果类型: %s\n", result["result_type"].get<std::string>().c_str());
-            if(result["result_type"] == "video"){
-                for(auto& item : result["data"]){
-                    VideoInfo info;
-                    info.title = item["title"].get<std::string>();
-                    size_t pos;
-                    while((pos=info.title.find('<'))!=std::string::npos) info.title.erase(pos,1);
-                    while((pos=info.title.find('>'))!=std::string::npos) info.title.erase(pos,1);
-                    info.url = "https://www.bilibili.com/video/" + item["bvid"].get<std::string>();
-                    videos.push_back(info);
-                }
-            }
-        }
-    } catch (const std::exception& e) {
-        printf("[调试] 解析异常: %s\n", e.what());
-    }
-    printf("[调试] 解析到视频数量: %zu\n", videos.size());
-    return videos;
-}
-
-int main() {
-    curl_global_init(CURL_GLOBAL_ALL);
-    CURL* curl = curl_easy_init();
-
-    std::string keyword;
-    std::cout << "请输入B站搜索关键词：";
-    std::getline(std::cin, keyword);
-    std::string encodedKey = urlEncode(curl, keyword);
-
-    std::cout << "正在搜索..." << std::endl;
-    std::string jsonResp = fetchBiliAPI(encodedKey);
-    std::vector<VideoInfo> videos = parseJson(jsonResp);
-
-    if (videos.empty()) {
-        std::cout << "\n❌ 未找到视频！请把上面调试信息发我！\n";
+int judge_input(std::string input){
+    if(input=="exit"){
         return 0;
     }
-
-    std::cout << "\n========== 搜索结果 ==========\n";
-    for (size_t i = 0; i < videos.size(); ++i) {
-        std::cout << i + 1 << ". " << videos[i].title << "\nURL: " << videos[i].url << "\n\n";
+    if(input=="help"){
+        help();
     }
+    if(input=="play"){
 
-    int choice;
-    std::cout << "请输入序号播放：";
-    std::cin >> choice;
-    std::string cmd = "yt-dlp -o - \"" + videos[choice-1].url + "\" | ffplay -i - -autoexit";
-    system(cmd.c_str());
+    }
+    if(input=="search"){
 
-    curl_easy_cleanup(curl);
+    }
+    std::cout<<"错误输入";
+    help();
+}
+int main() {
+    std::cout<<"欢迎打开bilibiliCLI"<<std::endl;
+    help();
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    while(true){
+
+        CURL* curl = curl_easy_init();
+
+        std::string keyword;
+        std::cout << "请输入B站搜索关键词：";
+        std::getline(std::cin, keyword);
+        if(keyword=="exit"){
+            std::cout<<"已退出"<<std::endl;
+            break;
+        }
+        std::string encodedKey = urlEncode(curl, keyword);
+
+        std::cout << "正在搜索..." << std::endl;
+        std::string jsonResp = fetchBiliAPI(encodedKey);
+        std::vector<VideoInfo> videos = parseJson(jsonResp);
+
+        if (videos.empty()) {
+            std::cout << "\n❌ 未找到视频！\n";
+            return 0;
+        }
+
+        std::cout << "\n========== 搜索结果 ==========\n";
+        for (size_t i = 0; i < videos.size(); ++i) {
+            std::cout << i + 1 << ". " << videos[i].title << "\nURL: " << videos[i].url << "\n\n";
+        }
+
+        std::string input;
+        std::cout << "请输入序号播放，播放速度，画面清晰度：";
+        std::cin >> input;
+        if(input=="exit"){
+            std::cout<<"已退出"<<std::endl;
+            break;
+        }
+
+        std::string cmd = "yt-dlp -o - \"" + videos[choice-1].url + "\" | ffplay -i - -autoexit";
+        system(cmd.c_str());
+
+        curl_easy_cleanup(curl);
+    }
     curl_global_cleanup();
     return 0;
 }
