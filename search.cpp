@@ -51,7 +51,7 @@ static std::string fetchBiliAPI(const std::string& keyword) {
 static void debugPrint(const std::string& s, const char* name, int maxLen=1000){
     printf("\n[调试] %s 长度：%zu\n", name, s.size());
     printf("[调试] %s 前%d字符：\n", name, maxLen);
-    if(s.size() < maxLen) printf("%s\n", s.c_str());
+    if((int)s.size() < maxLen) printf("%s\n", s.c_str());
     else printf("%s...\n", s.substr(0, maxLen).c_str());
 }
 

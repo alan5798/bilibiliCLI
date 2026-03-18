@@ -13,5 +13,6 @@ int cmdconfirm(){
     }
     std::cout<<"wrong input";
     help();
+    return -1;
 }
 
