@@ -4,6 +4,7 @@
 #include "input.h"
 int cmdconfirm(){
     std::string cmd;
+    std::cout<<">";
     std::cin>>cmd;
     std::string cmdlist[10]={"search","help","play","exit","speed","clarity","history","starfolder","star","clear"};
     for(int i=0;i<9;++i){

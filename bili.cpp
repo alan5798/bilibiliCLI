@@ -19,6 +19,7 @@ int main() {
         std::string argu;
         switch(cmd){
             case 0://search
+            std::cout<<">";
             std::cin>>argu;
             sr=search(argu);
             break;//help
@@ -27,6 +28,7 @@ int main() {
             break;
             case 2://play
             if(sr.size()!=0){
+                std::cout<<">";
                 std::cin>>argu;
                 play(sr,speed,clarity,std::stoi(argu));
             }
@@ -35,9 +37,11 @@ int main() {
             terminate=true;
             break;
             case 4:
+            std::cout<<">";
             std::cin>>speed;
             break;
             case 5:
+            std::cout<<">";
             std::cin>>clarity;
             case 6:
             system("cat history.txt");
@@ -46,11 +50,13 @@ int main() {
             system("cat starfolder.txt");
             case 8:
             if(sr.size()!=0){
+                std::cout<<">";
                 std::cin>>argu;
                 std::string cmd="echo ";
             }
             case 9:
             if(sr.size()!=0){
+                std::cout<<">";
                 std::cin>>argu;
                 std::string cmd="echo ";
             }
