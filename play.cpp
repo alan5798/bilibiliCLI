@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-
+#include <fstream>
 #include "video.h"
 void play(std::vector<struct VideoInfo> videos,int speed,int clarity,int choice){
     // 修复：ffplay 正确管道播放 + 自动退出 + 不报错
