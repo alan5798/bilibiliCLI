@@ -32,6 +32,7 @@ int main() {
                 std::cin>>argu;
                 play(sr,speed,clarity,std::stoi(argu));
             }
+            break;
             case 3://exit
             std::cout<<"感谢使用bilibiliCLI"<<std::endl;
             terminate=true;
