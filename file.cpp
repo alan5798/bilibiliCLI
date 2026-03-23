@@ -1,6 +1,6 @@
-#include "history.h"
-void Hwrite(struct VideoInfo v){
-    std::ofstream outFile("history.txt");
+#include "file.h"
+void write(struct VideoInfo v,std::string filename){
+    std::ofstream outFile(filename);
     if(!outFile){
         std::cout<<"文件打开失败";
         return;
@@ -9,15 +9,15 @@ void Hwrite(struct VideoInfo v){
     outFile << info<<std::endl;
     outFile.close();
 }
-void Hread(){
-    std::ifstream inFile("history.txt");
+void read(std::string filename){
+    std::ifstream inFile(filename);
     if(!inFile){
         std::cout<<"文件打开失败";
         return ;
     }
     std::string line;
     while(getline(inFile,line)){
-        std::cout<<"line";
+        std::cout<<line<<std::endl;
     }
     inFile.close();
 }

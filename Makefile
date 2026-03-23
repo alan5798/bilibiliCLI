@@ -5,7 +5,7 @@ CXXFLAGS = -std=c++11 -Wall
 LIBS = -lcurl
 
 # 你的所有源文件（当前项目实际存在的文件）
-SRC = bili.cpp play.cpp search.cpp input.cpp help.cpp
+SRC = bili.cpp play.cpp search.cpp input.cpp help.cpp file.cpp
 # 最终可执行文件名称
 TARGET = bili
 

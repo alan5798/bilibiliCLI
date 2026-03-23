@@ -11,5 +11,4 @@ void help(){
     std::cout<<"7 浏览历史           history"<<std::endl;
     std::cout<<"8 收藏夹             starfolder"<<std::endl;
     std::cout<<"9 收藏               star index"<<std::endl;
-    std::cout<<"10 清除              clear index"<<std::endl;
 }

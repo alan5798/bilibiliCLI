@@ -5,6 +5,7 @@
 #include "play.h"
 #include "help.h"
 #include "input.h"
+#include "file.h"
 #include <string>
 int main() {
     std::cout<<"欢迎打开bilibiliCLI"<<std::endl;
@@ -28,7 +29,6 @@ int main() {
             break;
             case 2://play
             if(sr.size()!=0){
-                std::cout<<">";
                 std::cin>>argu;
                 play(sr,speed,clarity,std::stoi(argu));
             }
@@ -45,23 +45,18 @@ int main() {
             std::cout<<">";
             std::cin>>clarity;
             case 6:
-            system("cat history.txt");
+            read("history.txt"); 
             break;
             case 7:
-            system("cat starfolder.txt");
+            read("star.txt");
+            break;
             case 8:
             if(sr.size()!=0){
-                std::cout<<">";
                 std::cin>>argu;
-                std::string cmd="echo ";
+                write(sr[std::stoi(argu)-1],"star.txt");
             }
-            case 9:
-            if(sr.size()!=0){
-                std::cout<<">";
-                std::cin>>argu;
-                std::string cmd="echo ";
-            }
-            default:
+            break;
+           default:
             break;
 
         }
