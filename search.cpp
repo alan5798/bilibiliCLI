@@ -5,6 +5,18 @@
 #include <curl/curl.h>
 
 using json = nlohmann::json;
+CURL* init_bili_curl() {
+    CURL* curl = curl_easy_init();
+    // 1. 禁用Nagle算法（计网：减少小包延迟）
+    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1L);
+    // 2. TCP连接复用（计网：避免三次握手）
+    curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
+    // 3. DNS缓存（计网：减少重复域名解析）
+    curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 300L);
+    // 4. 超时保护（避免网络卡死）
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+    return curl;
+}
 // CURL回调
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
     size_t newLength = size * nmemb;
@@ -22,7 +34,7 @@ static std::string urlEncode(CURL* curl, const std::string& str) {
 
 // 请求API
 static std::string fetchBiliAPI(const std::string& keyword) {
-    CURL* curl = curl_easy_init();
+    CURL* curl = init_bili_curl();
     std::string response;
 
     if (curl) {
@@ -91,7 +103,7 @@ static std::vector<VideoInfo> parseJson(const std::string& jsonStr) {
     return videos;
 }
 std::vector<struct VideoInfo> search(std::string keyword){
-    CURL* curl = curl_easy_init();
+    CURL* curl = init_bili_curl();
     std::string encodedKey = urlEncode(curl, keyword);
 
     std::cout << "正在搜索..." << std::endl;

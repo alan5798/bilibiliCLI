@@ -1,12 +1,53 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "video.h"
 #include "file.h"
-void play(std::vector<struct VideoInfo> videos,int speed,int clarity,int choice){
-    // 修复：ffplay 正确管道播放 + 自动退出 + 不报错
-    std::string url = videos[choice-1].url;
-    std::string cmd = "yt-dlp -o - \"" + url + "\" | ffplay -i - -autoexit";
-    write(videos[choice-1],"history.txt");
-    system(cmd.c_str());
+
+void play(std::string url){
+    int pipefd[2];
+    if(pipe(pipefd)==-1){
+        perror("pipe创建失败");
+        return;
+    }
+    int read_fd=pipefd[0];
+    int write_fd=pipefd[1];
+    //excute yt-dlp
+    pid_t pid_yt=fork();
+    if(pid_yt==0){//child process
+        dup2(write_fd,STDOUT_FILENO);
+        close(read_fd);
+        close(write_fd);
+        execlp(
+            "yt-dlp", 
+            "yt-dlp",
+            "-o",
+            "-",
+            url.c_str(),
+            NULL
+        );
+        perror("execlp yt-dlp fail\n");
+        exit(1);
+    }
+    pid_t pid_ffplay=fork();
+    if(pid_ffplay==0){
+        dup2(read_fd,STDIN_FILENO);
+        close(read_fd);
+        close(write_fd);
+        execlp(
+            "ffplay",
+            "ffplay",
+            "-i","-",
+            "-autoexit",
+            NULL
+        );
+        perror("execlp ffplay fail\n");
+        exit(1);
+    }
+    close(read_fd);
+    close(write_fd);
+    waitpid(pid_yt,nullptr,0);
+    waitpid(pid_ffplay,nullptr,0);
 }

@@ -30,7 +30,8 @@ int main() {
             case 2://play
             if(sr.size()!=0){
                 std::cin>>argu;
-                play(sr,speed,clarity,std::stoi(argu));
+                std::string url=sr[stoi(argu)].url;
+                play(url);
             }
             break;
             case 3://exit

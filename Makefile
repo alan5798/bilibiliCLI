@@ -1,6 +1,6 @@
 # 编译配置
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall
+CXXFLAGS = -std=c++11 -O2 -Wall
 # 链接curl库
 LIBS = -lcurl
 
