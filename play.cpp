@@ -3,15 +3,17 @@
 #include <fstream>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include "video.h"
 #include "file.h"
-
 void play(std::string url){
     int pipefd[2];
     if(pipe(pipefd)==-1){
         perror("pipe创建失败");
         return;
     }
+    int pipesize=128*1024;
+    fcntl(pipefd[1],F_SETPIPE_SZ,pipesize);
     int read_fd=pipefd[0];
     int write_fd=pipefd[1];
     //excute yt-dlp
