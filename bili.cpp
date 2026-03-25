@@ -32,6 +32,7 @@ int main() {
                 std::cin>>argu;
                 std::string url=sr[stoi(argu)].url;
                 play(url);
+                write(sr[stoi(argu)],"history.txt");
             }
             break;
             case 3://exit
