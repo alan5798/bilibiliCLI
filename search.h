@@ -1,6 +1,6 @@
-#ifndef SEARCH_H
-#define SEARCH_H
-#include "video.h"
+#pragma once
 #include <vector>
-std::vector<struct VideoInfo>search(std::string keyword);
-#endif
+#include <string>
+#include "video.h"
+
+std::vector<VideoInfo> search(const std::string& keyword);

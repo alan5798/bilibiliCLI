@@ -1,8 +1,13 @@
-#ifndef HISTORY_H
-#define HISTOTY_H
-#include <fstream>
-#include <iostream>
+#pragma once
+#include <string>
+#include <vector>
 #include "video.h"
-void write(struct VideoInfo v,std::string filename);
-void read(std::string filename);
-#endif 
+
+// 追加写入一条视频记录到文件
+void writeRecord(const VideoInfo& v, const std::string& filename);
+
+// 读取文件并显示带编号的列表，返回所有记录（供直接播放用）
+std::vector<VideoInfo> readRecords(const std::string& filename);
+
+// 从收藏/历史记录中删除指定编号的条目
+void deleteRecord(const std::string& filename, int index);

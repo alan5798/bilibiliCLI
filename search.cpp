@@ -5,119 +5,118 @@
 #include <curl/curl.h>
 
 using json = nlohmann::json;
-CURL* init_bili_curl() {
-    CURL* curl = curl_easy_init();
-    // 1. 禁用Nagle算法（计网：减少小包延迟）
-    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1L);
-    // 2. TCP连接复用（计网：避免三次握手）
-    curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-    // 3. DNS缓存（计网：减少重复域名解析）
-    curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 300L);
-    // 4. 超时保护（避免网络卡死）
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
-    return curl;
-}
-// CURL回调
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
-    size_t newLength = size * nmemb;
-    s->append((char*)contents, newLength);
-    return newLength;
+
+// ── CURL 回调 ────────────────────────────────────────────────────────────────
+static size_t writeCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
+    s->append((char*)contents, size * nmemb);
+    return size * nmemb;
 }
 
-// URL编码
+// ── CURL 初始化 ───────────────────────────────────────────────────────────────
+static CURL* initCurl() {
+    CURL* curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1L);
+    curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
+    curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 300L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+    return curl;
+}
+
+// ── URL 编码 ──────────────────────────────────────────────────────────────────
 static std::string urlEncode(CURL* curl, const std::string& str) {
-    char* encoded = curl_easy_escape(curl, str.c_str(), str.length());
+    char* encoded = curl_easy_escape(curl, str.c_str(), (int)str.length());
     std::string result(encoded);
     curl_free(encoded);
     return result;
 }
 
-// 请求API
-static std::string fetchBiliAPI(const std::string& keyword) {
-    CURL* curl = init_bili_curl();
-    std::string response;
-
-    if (curl) {
-        std::string url = "https://api.bilibili.com/x/web-interface/search/all/v2?keyword=" + keyword;
-        
-        struct curl_slist* headers = NULL;
-        headers = curl_slist_append(headers, "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36");
-        headers = curl_slist_append(headers, "Referer: https://search.bilibili.com/");
-
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-
-        CURLcode res = curl_easy_perform(curl);
-        if(res != CURLE_OK) printf("CURL请求失败: %s\n", curl_easy_strerror(res));
-
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
+// ── 去除 HTML 标签（<em>, </em> 等 B 站高亮标记）────────────────────────────
+static std::string stripHtmlTags(const std::string& s) {
+    std::string out;
+    bool inTag = false;
+    for (char c : s) {
+        if (c == '<') { inTag = true; continue; }
+        if (c == '>') { inTag = false; continue; }
+        if (!inTag) out += c;
     }
+    return out;
+}
+
+// ── 请求 B 站搜索 API ─────────────────────────────────────────────────────────
+static std::string fetchBiliAPI(const std::string& encodedKeyword) {
+    CURL* curl = initCurl();
+    std::string response;
+    if (!curl) return response;
+
+    std::string url = "https://api.bilibili.com/x/web-interface/search/all/v2?keyword=" + encodedKeyword;
+
+    struct curl_slist* headers = nullptr;
+    headers = curl_slist_append(headers,
+        "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36");
+    headers = curl_slist_append(headers, "Referer: https://search.bilibili.com/");
+
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        std::cout << "❌ 网络请求失败: " << curl_easy_strerror(res) << std::endl;
+    }
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
     return response;
 }
 
-// 调试：打印字符串片段
-static void debugPrint(const std::string& s, const char* name, int maxLen=1000){
-    printf("\n[调试] %s 长度：%zu\n", name, s.size());
-    printf("[调试] %s 前%d字符：\n", name, maxLen);
-    if((int)s.size() < maxLen) printf("%s\n", s.c_str());
-    else printf("%s...\n", s.substr(0, maxLen).c_str());
-}
-
-// 解析JSON（带调试+异常捕获）
+// ── 解析 JSON ─────────────────────────────────────────────────────────────────
 static std::vector<VideoInfo> parseJson(const std::string& jsonStr) {
     std::vector<VideoInfo> videos;
-    try {
-        debugPrint(jsonStr, "API返回JSON");
-        json data = json::parse(jsonStr);
+    if (jsonStr.empty()) return videos;
 
-        // 调试：打印返回码
-        printf("[调试] B站API返回码 code: %d\n", data["code"].get<int>());
-        if(data["code"] != 0){
-            printf("[调试] API错误信息: %s\n", data["message"].get<std::string>().c_str());
+    try {
+        json data = json::parse(jsonStr);
+        if (data["code"] != 0) {
+            std::cout << "❌ B站 API 错误: " << data["message"].get<std::string>() << std::endl;
             return videos;
         }
-
-        // 遍历所有结果，找视频
-        for(auto& result : data["data"]["result"]){
-            printf("[调试] 结果类型: %s\n", result["result_type"].get<std::string>().c_str());
-            if(result["result_type"] == "video"){
-                for(auto& item : result["data"]){
+        for (auto& result : data["data"]["result"]) {
+            if (result["result_type"] == "video") {
+                for (auto& item : result["data"]) {
                     VideoInfo info;
-                    info.title = item["title"].get<std::string>();
-                    size_t pos;
-                    while((pos=info.title.find('<'))!=std::string::npos) info.title.erase(pos,1);
-                    while((pos=info.title.find('>'))!=std::string::npos) info.title.erase(pos,1);
-                    info.url = "https://www.bilibili.com/video/" + item["bvid"].get<std::string>();
+                    info.title = stripHtmlTags(item["title"].get<std::string>());
+                    info.url   = "https://www.bilibili.com/video/" + item["bvid"].get<std::string>();
                     videos.push_back(info);
                 }
             }
         }
     } catch (const std::exception& e) {
-        printf("[调试] 解析异常: %s\n", e.what());
+        std::cout << "❌ JSON 解析失败: " << e.what() << std::endl;
     }
-    printf("[调试] 解析到视频数量: %zu\n", videos.size());
     return videos;
 }
-std::vector<struct VideoInfo> search(std::string keyword){
-    CURL* curl = init_bili_curl();
-    std::string encodedKey = urlEncode(curl, keyword);
 
-    std::cout << "正在搜索..." << std::endl;
-    std::string jsonResp = fetchBiliAPI(encodedKey);
+// ── 对外接口 ──────────────────────────────────────────────────────────────────
+std::vector<VideoInfo> search(const std::string& keyword) {
+    CURL* curl = initCurl();
+    std::string encoded = urlEncode(curl, keyword);
+    curl_easy_cleanup(curl);
+
+    std::cout << "🔍 正在搜索「" << keyword << "」..." << std::endl;
+    std::string jsonResp = fetchBiliAPI(encoded);
     std::vector<VideoInfo> videos = parseJson(jsonResp);
 
     if (videos.empty()) {
-        std::cout << "\n❌ 未找到视频！\n";
-        //process wrong information
+        std::cout << "❌ 未找到相关视频" << std::endl;
+        return videos;
     }
 
     std::cout << "\n========== 搜索结果 ==========\n";
     for (size_t i = 0; i < videos.size(); ++i) {
-        std::cout << i + 1 << ". " << videos[i].title << "\nURL: " << videos[i].url << "\n\n";
+        std::cout << i + 1 << ". " << videos[i].title << "\n   " << videos[i].url << "\n\n";
     }
     return videos;
 }
